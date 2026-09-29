@@ -1,0 +1,23 @@
+{
+  "project": "_Organized Desktop/03 Master Projects/master2",
+  "id": "4ac741261ad5",
+  "command": [
+    "npx.cmd",
+    "prisma",
+    "validate",
+    "--schema",
+    "packages/db/prisma/schema.prisma"
+  ],
+  "cwd": "C:\\Users\\Owner\\Desktop\\AstraOrganized2\\astra-remaining-improvements\\stage\\4ac741261ad5",
+  "environmentOverrides": {
+    "DATABASE_URL": "postgresql://dummy:dummy@localhost:5432/dummy"
+  },
+  "startedAt": "2026-09-12T21:38:21.376458+00:00",
+  "status": "complete",
+  "log": "prisma_validate_v2.log",
+  "pid": 31792,
+  "exitCode": 0,
+  "passed": true,
+  "finishedAt": "2026-09-12T21:39:59.159874+00:00",
+  "elapsedSeconds": 97.78
+}

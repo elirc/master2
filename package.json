@@ -1,0 +1,30 @@
+{
+  "name": "enterprise-billing-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Learning-oriented multi-tenant SaaS billing and subscription platform.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @billing/api",
+    "dev:api": "npm run dev --workspace @billing/api",
+    "dev:web": "npm run dev --workspace @billing/web",
+    "dev:worker": "npm run dev --workspace @billing/worker",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run build --workspace @billing/domain && npm run build --workspace @billing/db && npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "db:generate": "npm run prisma:generate --workspace @billing/db",
+    "db:push": "npm run prisma:push --workspace @billing/db",
+    "db:seed": "npm run seed --workspace @billing/db"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "effect": "^3.21.2",
+    "fast-check": "^4.7.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

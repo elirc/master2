@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  active
+  suspended
+}
+
+enum Role {
+  owner
+  admin
+  billing_manager
+  support
+  viewer
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  paused
+  canceled
+}
+
+enum InvoiceStatus {
+  draft
+  open
+  paid
+  void
+  uncollectible
+}
+
+enum PaymentStatus {
+  requires_payment_method
+  processing
+  succeeded
+  failed
+}
+
+enum OutboxStatus {
+  pending
+  processing
+  processed
+  failed
+}
+
+model Organization {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String             @unique
+  status      OrganizationStatus @default(active)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  users       Membership[]
+  teams       Team[]
+  plans       Plan[]
+  customers   Customer[]
+  coupons     Coupon[]
+  taxRates    TaxRate[]
+  auditLogs   AuditLog[]
+  outbox      OutboxEvent[]
+  preferences UserPreference[]
+}
+
+model User {
+  id          String           @id @default(cuid())
+  email       String           @unique
+  name        String
+  createdAt   DateTime         @default(now())
+  memberships Membership[]
+  preferences UserPreference[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  teamMembers    TeamMember[]
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  members        TeamMember[]
+
+  @@unique([organizationId, name])
+}
+
+model TeamMember {
+  teamId       String
+  membershipId String
+  team         Team       @relation(fields: [teamId], references: [id])
+  membership   Membership @relation(fields: [membershipId], references: [id])
+
+  @@id([teamId, membershipId])
+}
+
+model Plan {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  description    String
+  active         Boolean        @default(true)
+  trialDays      Int            @default(14)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  prices         Price[]
+  entitlements   Entitlement[]
+  subscriptions  Subscription[]
+
+  @@unique([organizationId, code])
+}
+
+model Price {
+  id          String   @id @default(cuid())
+  planId      String
+  nickname    String
+  currency    String
+  unitAmount  Int
+  interval    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  plan        Plan     @relation(fields: [planId], references: [id])
+
+  @@index([planId])
+}
+
+model Entitlement {
+  id        String @id @default(cuid())
+  planId    String
+  key       String
+  value     String
+  plan      Plan   @relation(fields: [planId], references: [id])
+
+  @@unique([planId, key])
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  organizationId String
+  email          String
+  name           String
+  externalRef    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  subscriptions  Subscription[]
+  invoices       Invoice[]
+  payments       Payment[]
+
+  @@unique([organizationId, email])
+}
+
+model Coupon {
+  id             String       @id @default(cuid())
+  organizationId String
+  code           String
+  percentOff     Int
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, code])
+}
+
+model TaxRate {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  basisPoints    Int
+  active         Boolean      @default(true)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, name])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  customerId         String
+  planId             String
+  status             SubscriptionStatus
+  seatCount          Int                @default(1)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  customer           Customer           @relation(fields: [customerId], references: [id])
+  plan               Plan               @relation(fields: [planId], references: [id])
+  invoices           Invoice[]
+
+  @@index([organizationId, status])
+  @@index([customerId])
+}
+
+model Invoice {
+  id             String         @id @default(cuid())
+  organizationId String
+  customerId     String
+  subscriptionId String?
+  number         String
+  status         InvoiceStatus  @default(draft)
+  currency       String
+  subtotal       Int
+  discount       Int            @default(0)
+  tax            Int            @default(0)
+  total          Int
+  dueAt          DateTime
+  finalizedAt    DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime       @default(now())
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  subscription   Subscription?  @relation(fields: [subscriptionId], references: [id])
+  lines          InvoiceLine[]
+  payments       Payment[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitAmount  Int
+  subtotal    Int
+  invoice     Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  organizationId String
+  customerId     String
+  invoiceId      String
+  provider       String
+  providerRef    String?
+  status         PaymentStatus
+  amount         Int
+  currency       String
+  failureCode    String?
+  failureMessage String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  invoice        Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model WebhookEvent {
+  id             String   @id @default(cuid())
+  organizationId String?
+  provider       String
+  eventType      String
+  providerEventId String  @unique
+  payload        Json
+  processedAt    DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  organizationId String?
+  key            String
+  requestHash    String
+  response       Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, key])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+}
+
+model OutboxEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  topic          String
+  payload        Json
+  status         OutboxStatus @default(pending)
+  attempts       Int          @default(0)
+  availableAt    DateTime     @default(now())
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([status, availableAt])
+}
+
+model UserPreference {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  key            String
+  value          Json
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId, key])
+}
+
+model WorkerHeartbeat {
+  id        String   @id @default(cuid())
+  worker    String   @unique
+  status    String
+  checkedAt DateTime @default(now())
+  metadata  Json
+}

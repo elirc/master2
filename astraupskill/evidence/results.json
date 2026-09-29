@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "total": 30,
+  "tests": 30,
+  "failed": 0,
+  "domainTests": 5,
+  "apiServiceTests": 16,
+  "apiRouteTests": 9,
+  "checks": [
+    "prisma_validate_v2",
+    "root-generate-01",
+    "root-verify-01"
+  ],
+  "scope": "Mocked Prisma service tests, actual Express router and shared error middleware with mocked service/auth, domain tests, schema validation, client generation, workspace typechecks and builds. No live database or provider."
+}
