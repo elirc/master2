@@ -47,7 +47,7 @@ At scale the pressure is different. Serializable failures rise with contention, 
 
 ## 3. Background jobs: the outbox has no consumer story here
 
-`writeOutboxEvent` inserts into `outboxEvent` on the transaction client (`apps/api/src/shared/outbox.ts:35`), so publication intent commits with the state change and nothing is published for a rolled-back webhook. That is the whole guarantee the API provides. The worker workspace exists and the verification chapter says plainly that no worker job was run.
+`writeOutboxEvent` inserts into `outboxEvent` on the transaction client (`apps/api/src/shared/outbox.ts:11`), so publication intent commits with the state change and nothing is published for a rolled-back webhook. That is the whole guarantee the API provides. The worker workspace exists and the verification chapter says plainly that no worker job was run.
 
 A production consumer needs a claim of its own: `SELECT ... FOR UPDATE SKIP LOCKED` over a batch ordered by `createdAt`, a `publishedAt` stamp written in the same transaction as the publish acknowledgement, and a dead-letter state after N attempts. Delivery is at-least-once, so the consumer of the topic has to deduplicate, and the natural key is the outbox row id. The trade-off against publishing inline from the handler is latency: a poll interval of delay in exchange for never emitting an event for a transaction that did not commit.
 

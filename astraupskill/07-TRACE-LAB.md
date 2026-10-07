@@ -2,7 +2,7 @@
 
 Use a success fixture and narrate each line while reading the source. At the route, tenant permission is established. At the service, Zod returns normalized data and hashing fixes event identity. The transaction reads an existing event, then scoped payment and invoice. New event creation occurs only after both targets exist. State updates and side effects use one transaction client. The response is returned only after processing timestamp, audit, and outbox calls complete.
 
-Repeat with a replay: the trace ends at `processedAt` and returns duplicate. Repeat with an org-b collision: it ends at identity conflict. Repeat with a succeeded payment plus failure event: it reaches event update and audit, then skips state and outbox. Drawing these traces makes early exits and side-effect boundaries concrete.
+Repeat with a replay: the trace ends at `processedAt` and returns duplicate. Repeat with an org-b collision: it ends at identity conflict. Repeat with a succeeded payment plus failure event: it creates the event, skips the state updates, then reaches event update and audit and skips the outbox. Finally trace a succeeded payment plus a *new success* event: it skips the state updates like the late failure, but the line 110 guard lets the outbox write through (finding F2 in chapter 06). Drawing these traces makes early exits and side-effect boundaries concrete.
 
 Exercise: trace a contention retry. Solution: transaction attempt one rejects with recognized Prisma code, attempt two runs the callback; if it rejects again the final typed 409 is returned. A mock can show control flow, while only real PostgreSQL can validate serialization.
 
@@ -12,7 +12,7 @@ Finally, compare traces for success and replay side by side. Success reaches sta
 
 ## The early exits you are narrating
 
-All four traces run through `apps/api/src/modules/payments.service.ts:40`. Read the order: identity conflict first, then the replay return, then the tenant-scoped payment and invoice lookups — each one a place a trace can end before any write.
+Every trace runs through `apps/api/src/modules/payments.service.ts:41-59`. Read the order: identity conflict first, then the replay return, then the tenant-scoped payment and invoice lookups — each one a place a trace can end before any write.
 
 ```ts
       return await prisma.$transaction(async (tx) => {

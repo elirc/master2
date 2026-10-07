@@ -26,7 +26,7 @@
 
 **Task.** Make the exercises attemptable without breaking the link between prompt and answer.
 
-**Action.** I kept the prompt in each of chapters 01 through 04 and moved every solution into a "Solutions to the chapter exercises" section in chapter 06 with one anchor per chapter, then checked each forward link resolves to an anchor that exists. In the verification chapter I added a runnable section: compose up, generate, push, seed, start the API on the default port 4000, then a curl that returns `{ processed: true, eventId }` and the identical curl again that returns `{ duplicate: true, eventId }` with no new rows.
+**Action.** I kept the prompt in each of chapters 01 through 04 and moved every solution into a "Solutions to the chapter exercises" section in chapter 06 with one anchor per chapter, then checked each forward link resolves to an anchor that exists. In the verification chapter I added a runnable section: compose up, generate, push, seed, start the API on the default port 4000 (corrected 2026-10-06: the seed creates no invoice or payment, so the section now also starts the worker and creates both through the API first), then a curl that returns `{ processed: true, eventId }` and the identical curl again that returns `{ duplicate: true, eventId }` with no new rows.
 
 **Result.** The replay behaviour is something a reader observes in their own terminal rather than something the text asserts, and the exercises are exercises.
 
